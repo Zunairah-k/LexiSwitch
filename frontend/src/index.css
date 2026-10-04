@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+@theme {
+  --color-paper: #FAF3E2;
+  --color-ink: #1B1F3B;
+  --color-ink-soft: #5A5D75;
+  --color-rule: #DCCFB2;
+  --color-en: #2B44B5;
+  --color-hi: #148564;
+  --color-te: #B3263A;
+  --color-other: #7A7A8C;
+  --color-saffron: #EBA91B;
+  --font-display: "Fraunces", "Noto Sans Telugu", "Noto Sans Devanagari", Georgia, serif;
+  --font-sans: "DM Sans", "Noto Sans Telugu", "Noto Sans Devanagari", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+@layer base {
+  html { background: var(--color-paper); }
+  body {
+    margin: 0;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    background-image: radial-gradient(rgba(27, 31, 59, 0.05) 1px, transparent 1px);
+    background-size: 22px 22px;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--color-saffron); color: var(--color-ink); }
+}
