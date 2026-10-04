@@ -1,0 +1,25 @@
+sentence_id,position,token,gold,predicted,method,probability,runner_up,sentence
+1,4,ki,te,hi,lexicon+char-ngram-nb,0.5905,en,Nenu repu college ki vastanu
+2,1,Mana,te,hi,lexicon+char-ngram-nb,0.6015,en,Mana project deadline eppudu ra
+2,5,ra,te,hi,lexicon+char-ngram-nb,0.5109,en,Mana project deadline eppudu ra
+6,4,ga,te,en,lexicon,,,Lecture chala boring ga undi
+7,2,ki,te,hi,lexicon+char-ngram-nb,0.5905,en,Meeting ki ela randi sir
+9,3,tho,te,en,lexicon+char-ngram-nb,0.5812,hi,Nenu mom tho market ki vellanu
+9,5,ki,te,hi,lexicon+char-ngram-nb,0.5905,en,Nenu mom tho market ki vellanu
+10,3,lo,te,en,lexicon+char-ngram-nb,0.6062,hi,Mee phone lo battery ledu
+11,4,inka,te,hi,lexicon+char-ngram-nb,0.5369,te,Results ravadam ledu inka
+12,4,madam,en,hi,lexicon+char-ngram-nb,0.5645,en,Oka doubt undi madam
+13,6,mam,en,te,char-ngram-nb,0.4631,hi,Nenu assignment submit chesanu but mam corrections adigaru
+14,3,ke,hi,en,lexicon+char-ngram-nb,0.3896,hi,Kal meeting ke baad call karna
+16,4,ho,hi,en,lexicon+char-ngram-nb,0.5639,hi,Aaj class cancel ho gayi
+17,1,Yeh,hi,en,lexicon,,,Yeh project bahut difficult hai
+18,3,ke,hi,en,lexicon+char-ngram-nb,0.3896,hi,Tum lunch ke liye aa rahe ho
+18,5,aa,hi,en,lexicon,,,Tum lunch ke liye aa rahe ho
+18,7,ho,hi,en,lexicon+char-ngram-nb,0.5639,hi,Tum lunch ke liye aa rahe ho
+20,1,Mera,hi,te,lexicon+char-ngram-nb,0.5049,hi,Mera laptop kharab ho gaya
+20,4,ho,hi,en,lexicon+char-ngram-nb,0.5639,hi,Mera laptop kharab ho gaya
+21,5,do,hi,en,lexicon+char-ngram-nb,0.5954,hi,Please mujhe notes bhej do
+22,1,Wo,hi,en,lexicon,,,Wo presentation kal hai
+23,1,Main,hi,en,lexicon+char-ngram-nb,0.4781,te,Main office jaa raha hoon
+23,3,jaa,hi,te,char-ngram-nb,0.5418,hi,Main office jaa raha hoon
+24,4,lo,te,en,lexicon+char-ngram-nb,0.6062,hi,Nenu kal office lo meeting attend cheyyali but I'm not sure
