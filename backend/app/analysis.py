@@ -80,7 +80,7 @@ def analyze(preds: list[TokenPrediction], num_languages: int, top_uncertain: int
     scored.sort(key=lambda p: p.probability - p.runner_up_probability)
     uncertain = [{
         "index": p.index, "token": p.text,
-        "language": p.language, "probability": p.probability,
+        "language": p.independent_language or p.language, "probability": p.probability,
         "runner_up": p.runner_up, "runner_up_probability": p.runner_up_probability,
         "margin": p.probability - p.runner_up_probability,
     } for p in scored[:top_uncertain]]
@@ -99,6 +99,7 @@ def analyze(preds: list[TokenPrediction], num_languages: int, top_uncertain: int
         "switch_count": len(switches),
         "switch_density": density,
         "mixing_index": mixing,
+        "context_overrides": sum(1 for p in preds if p.context_override),
         "scripts": list(dict.fromkeys(p.script.title() for p in preds if p.script != "NONE")),
         "uncertain_tokens": uncertain,
     }

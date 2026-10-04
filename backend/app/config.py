@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,3 +41,13 @@ SCRIPT_LANGS = {
     "TAMIL": ["ta"],
     "TELUGU": ["te"],
 }
+
+# Context-smoothing settings, written by scripts/tune.py (dev set only).
+PARAMS_PATH = ROOT / "app" / "tuned_params.json"
+DEFAULT_PARAMS = {"switch_prior": None, "lexicon_confidence": 0.9}
+
+
+def load_params() -> dict:
+    if PARAMS_PATH.exists():
+        return {**DEFAULT_PARAMS, **json.loads(PARAMS_PATH.read_text(encoding="utf-8"))}
+    return dict(DEFAULT_PARAMS)

@@ -204,7 +204,8 @@ def main() -> None:
     langs = args.langs.split(",") if args.langs else None
 
     full = LanguageIdentifier.load(langs)
-    nb_only = LanguageIdentifier.load(langs, use_lexicon=False)
+    no_ctx = LanguageIdentifier.load(langs, use_context=False)
+    nb_only = LanguageIdentifier.load(langs, use_lexicon=False, use_context=False)
     sentences, problems = load_gold(Path(args.file), set(full.classes) | {OTHER})
     if problems:
         print("Fix these lines first:")
@@ -215,15 +216,17 @@ def main() -> None:
         sys.exit("No sentences found.")
 
     print(f"=== {args.file} ===")
+    print(f"Parameters: switch_prior={full.switch_prior}, lexicon_confidence={full.lexicon_conf}")
     res_full = evaluate(full, sentences)
     describe(res_full, sentences)
-    print("\n--- Full pipeline (script rules + lexicon + character n-gram NB) ---")
+    print("\n--- Full pipeline (script rules + lexicon + n-gram NB + context) ---")
     print_full(res_full, full.classes, Path(args.out), Path(args.file).stem)
 
-    res_nb = evaluate(nb_only, sentences)
     print("\n--- Ablation ---")
     print(f"{'configuration':<28}{'accuracy':>10}{'macro-F1':>10}{'switch P':>10}{'switch R':>10}{'switch F1':>11}")
-    for name, res in [("lexicon + n-gram NB", res_full), ("n-gram NB only", res_nb)]:
+    for name, m in [("lexicon + NB + context", full), ("lexicon + NB", no_ctx),
+                    ("n-gram NB only", nb_only)]:
+        res = res_full if m is full else evaluate(m, sentences)
         _, _, _, acc, macro, _ = token_metrics(res["rows"], full.classes)
         sw = switch_summary(res["pairs"])
         print(f"{name:<28}{acc:>10.3f}{macro:>10.3f}{f(sw['precision']):>10}"
