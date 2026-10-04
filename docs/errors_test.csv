@@ -1,0 +1,40 @@
+sentence_id,position,token,gold,predicted,method,probability,runner_up,sentence
+1,4,ki,te,hi,lexicon+char-ngram-nb,0.5905,en,Nenu ninna library ki vellanu
+5,1,Ee,te,en,lexicon,,,Ee roju class cancel ayindi
+6,3,ki,te,hi,lexicon+char-ngram-nb,0.5905,en,Memu lunch ki hotel ki veltunnam
+6,5,ki,te,hi,lexicon+char-ngram-nb,0.5905,en,Memu lunch ki hotel ki veltunnam
+9,1,Mana,te,hi,lexicon+char-ngram-nb,0.6015,en,Mana team match gelichindi
+12,3,lo,te,en,lexicon+char-ngram-nb,0.6062,hi,Naa mobile lo charging ledu
+15,3,lo,te,en,lexicon+char-ngram-nb,0.6062,hi,Nenu bus lo vastunna
+16,1,Ee,te,en,lexicon,,,Ee movie chala bore kottindi
+18,2,inka,te,hi,lexicon+char-ngram-nb,0.5369,te,Salary inka raledu
+20,3,lo,te,en,lexicon+char-ngram-nb,0.6062,hi,Exam hall lo phone allow cheyyaru
+22,4,tho,te,en,lexicon+char-ngram-nb,0.5812,hi,Bro nenu sir tho matladanu
+23,3,ki,te,hi,lexicon+char-ngram-nb,0.5905,en,Birthday party ki randi
+24,1,Aa,te,en,lexicon,,,Aa file send chey
+24,4,chey,te,en,char-ngram-nb,0.4400,te,Aa file send chey
+29,1,Mera,hi,te,lexicon+char-ngram-nb,0.5049,hi,Mera internet slow chal raha hai
+31,1,Main,hi,en,lexicon+char-ngram-nb,0.4781,te,Main traffic mein phans gaya hoon
+31,3,mein,hi,en,lexicon+char-ngram-nb,0.6941,hi,Main traffic mein phans gaya hoon
+31,4,phans,hi,en,char-ngram-nb,0.6374,hi,Main traffic mein phans gaya hoon
+32,1,Yeh,hi,en,lexicon,,,Yeh report kal tak submit karni hai
+34,2,ne,hi,en,lexicon+char-ngram-nb,0.4396,hi,Boss ne meeting cancel kar di
+34,6,di,hi,en,lexicon+char-ngram-nb,0.5104,hi,Boss ne meeting cancel kar di
+35,3,yaad,hi,te,char-ngram-nb,0.6007,hi,Mujhe password yaad nahi hai
+37,1,Wo,hi,en,lexicon,,,Wo mujhe email bhejega
+38,1,Hum,hi,en,lexicon,,,Hum log cafe ja rahe hain
+38,2,log,hi,en,lexicon+char-ngram-nb,0.6872,hi,Hum log cafe ja rahe hain
+39,5,do,hi,en,lexicon+char-ngram-nb,0.5954,hi,Battery low hai charger do
+41,1,Is,hi,en,lexicon+char-ngram-nb,0.4955,hi,Is project ka deadline kab hai
+44,1,Mera,hi,te,lexicon+char-ngram-nb,0.5049,hi,Mera exam acha gaya
+45,1,Wo,hi,en,lexicon,,,Wo bahut smart hai
+46,4,ho,hi,en,lexicon+char-ngram-nb,0.5639,hi,Kya tum online ho
+47,2,ne,hi,en,lexicon+char-ngram-nb,0.4396,hi,Sir ne homework diya hai
+51,4,ki,te,hi,lexicon+char-ngram-nb,0.5905,en,Yaar nuvvu online ki ra
+51,5,ra,te,hi,lexicon+char-ngram-nb,0.5109,en,Yaar nuvvu online ki ra
+52,1,Arre,hi,en,char-ngram-nb,0.7163,hi,Arre class ki late ayindi
+52,3,ki,te,hi,lexicon+char-ngram-nb,0.5905,en,Arre class ki late ayindi
+54,4,ga,te,en,lexicon,,,Mujhe chala tension ga hai
+59,3,a,en,te,lexicon+char-ngram-nb,0.5066,en,We have a test tomorrow
+64,2,akali,te,hi,lexicon,,,Naaku akali ga undi
+64,3,ga,te,en,lexicon,,,Naaku akali ga undi
