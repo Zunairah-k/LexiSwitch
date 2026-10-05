@@ -1,8 +1,8 @@
-export async function analyze(text) {
-  const res = await fetch("/api/analyze", {
+async function post(url, body) {
+  const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     throw new Error(
@@ -11,3 +11,6 @@ export async function analyze(text) {
   }
   return res.json();
 }
+
+export const analyze = (text) => post("/api/analyze", { text });
+export const compare = (textA, textB) => post("/api/compare", { text_a: textA, text_b: textB });
