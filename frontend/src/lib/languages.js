@@ -7,3 +7,5 @@ export const LANG = {
 
 export const langInfo = (code) =>
   LANG[code] ?? { name: code, color: "var(--color-other)", tint: "rgba(122, 122, 140, 0.12)" };
+
+export const abbr = (code) => code.toUpperCase();
