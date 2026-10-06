@@ -2,19 +2,19 @@
 
 For each token:
   1. Unicode script gives the candidate languages (hard rule).
-  2. If several candidates remain, look the word up in the lexicon built from
-     the training word lists:
+  2. If several candidates remain, look the word up in the dictionary (built from the
+     training word lists, with hand-written function-word lists taking priority):
        listed under one language   -> that language              ("lexicon")
        listed under several        -> classifier chooses among
                                       those only                 ("lexicon+char-ngram-nb")
        not listed                  -> classifier chooses among
                                       all candidates             ("char-ngram-nb")
-  3. The classifier is a character n-gram Naive Bayes; probabilities are
-     temperature-scaled and renormalised over the candidates.
-  4. Every token gets an emission distribution over the model's languages.
-     A Viterbi pass then picks the best language sequence, where changing
-     language between neighbouring tokens costs `switch_prior`
-     (None = no context, every token decided independently).
+  3. The classifier is a character n-gram Naive Bayes. Its scores get a per-language
+     offset (corrects the lean toward English), are divided by a temperature, and are
+     renormalised over the candidate languages.
+  4. Every token gets an emission distribution over the model's languages. An optional
+     Viterbi pass picks the best language sequence, where changing language between
+     neighbouring tokens costs `switch_prior` (None = every token decided independently).
 """
 from dataclasses import dataclass
 
@@ -48,7 +48,7 @@ class TokenPrediction:
 
 class LanguageIdentifier:
     def __init__(self, vectorizer, classifier, temperature, lexicon,
-                 use_lexicon=True, switch_prior=None, lexicon_conf=0.9):
+                 use_lexicon=True, switch_prior=None, lexicon_conf=0.9, bias=None, bias_scale=1.0):
         self.vec = vectorizer
         self.clf = classifier
         self.T = temperature
@@ -58,6 +58,8 @@ class LanguageIdentifier:
         self.lexicon_conf = lexicon_conf
         self.classes = list(classifier.classes_)
         self.index = {c: i for i, c in enumerate(self.classes)}
+        self.bias = np.zeros(len(self.classes)) if bias is None else np.asarray(bias, dtype=float)
+        self.bias_scale = bias_scale
 
     @classmethod
     def load(cls, langs=None, use_lexicon=True, use_context=True):
@@ -66,7 +68,8 @@ class LanguageIdentifier:
         return cls(b["vectorizer"], b["classifier"], b["temperature"], b["lexicon"],
                    use_lexicon=use_lexicon,
                    switch_prior=prm["switch_prior"] if use_context else None,
-                   lexicon_conf=prm["lexicon_confidence"])
+                   lexicon_conf=prm["lexicon_confidence"],
+                   bias=b.get("bias"), bias_scale=prm["bias_scale"])
 
     def _plan(self, text: str):
         tokens = tokenize(text)
@@ -134,7 +137,7 @@ class LanguageIdentifier:
         if need:
             X = self.vec.transform([tokens[i].text for i in need])
             for i, row in zip(need, self.clf.predict_log_proba(X)):
-                logp[i] = row
+                logp[i] = row + self.bias * self.bias_scale
 
         emis, nbp = {}, {}
         for i, (script, cands, method) in enumerate(plans):

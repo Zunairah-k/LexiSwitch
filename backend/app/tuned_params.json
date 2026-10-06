@@ -1,1 +1,6 @@
-{"switch_prior": null, "lexicon_confidence": 0.9, "note": "context smoothing tested on dev, no meaningful gain, left off"}
+{
+  "switch_prior": 0.5,
+  "lexicon_confidence": 0.9,
+  "bias_scale": 0.25,
+  "tuned_on": "data/eval/dev.txt"
+}

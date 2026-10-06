@@ -44,7 +44,7 @@ SCRIPT_LANGS = {
 
 # Context-smoothing settings, written by scripts/tune.py (dev set only).
 PARAMS_PATH = ROOT / "app" / "tuned_params.json"
-DEFAULT_PARAMS = {"switch_prior": None, "lexicon_confidence": 0.9}
+DEFAULT_PARAMS = {"switch_prior": None, "lexicon_confidence": 0.9, "bias_scale": 1.0}
 
 
 def load_params() -> dict:
