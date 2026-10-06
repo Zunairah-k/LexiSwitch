@@ -1,7 +1,8 @@
 # LexiSwitch: Token-Level Language Identification and Code-Switch Detection for English, Hindi and Telugu
 
 **Course:** Natural Language Processing (JNTUH R23), Unit III — Multilingual Issues
-**Student:** Zunairah Maasfa Khan  
+**Student:** Zunairah Maasfa Khan
+
 ---
 
 ## Abstract
@@ -12,12 +13,13 @@ language per text handle such input poorly, and a single sentence-level language
 the language changes. This project builds LexiSwitch, a system that identifies the language of every
 word (token) in mixed English, Hindi and Telugu text, extracts the sequence of languages, locates
 the code-switch points, and computes mixing statistics, with an interactive web interface for
-inspecting the results. The identifier combines Unicode script rules, a dictionary lookup and a
-character n-gram Naive Bayes classifier whose probabilities are calibrated by temperature scaling.
-On a hand-labeled test set of 70 sentences (316 scored tokens), run once after the model was frozen,
-the system reaches a token accuracy of 0.877 (95% bootstrap interval 0.840–0.911) and a switch-point
-F1 of 0.768. Most remaining errors come from short words that exist in more than one language, which
-cannot be resolved without context.
+inspecting the results. The identifier combines Unicode script rules, a dictionary with hand-written
+function-word lists, a character n-gram Naive Bayes classifier with calibrated probabilities, and a
+light context-smoothing step. The first version reached a token accuracy of 0.877 on a held-out test
+set. Testing the interface revealed that Hindi words were often labeled English; after targeted
+improvements, the final system reaches 0.943 token accuracy (95% bootstrap interval 0.913–0.969) and
+a switch-point F1 of 0.904 on a second, fresh test set evaluated once after the model was frozen.
+Remaining errors come mostly from short words shared between languages.
 
 ---
 
@@ -48,7 +50,7 @@ for any later processing of such text.
 2. Derive the language sequence and the switch points from the token labels.
 3. Compute documented statistics: language distribution, dominant language, switch density and a
    mixing index.
-4. Evaluate the system honestly with a development set and a separate test set, using accuracy,
+4. Evaluate the system honestly with a development set and separate test sets, using accuracy,
    precision, recall, F1, a confusion matrix, per-language results and error analysis.
 5. Present the results in an interactive interface in which every displayed value comes from the
    implemented pipeline.
@@ -83,7 +85,7 @@ evidence, and because words are often shared between languages (homographs acros
 Code-switching is the alternation between languages within a text or sentence. Analysing it requires
 labels below the sentence level. Related measures from the code-switching literature include the
 share of language changes between neighbouring words and an index of how evenly languages are
-mixed. This project defines both explicitly (Section 4.6).
+mixed. This project defines both explicitly (Section 4.7).
 
 ### 2.4 Naive Bayes with character n-grams
 
@@ -98,6 +100,12 @@ Naive Bayes multiplies many dependent features as if they were independent, so i
 are typically too close to 0 or 1. Temperature scaling divides the log-scores by a single number T,
 fitted on held-out data, which makes the probabilities more honest without changing which class
 wins.
+
+### 2.6 Sequence decoding
+
+Labeling each word independently ignores its neighbours. A hidden-Markov-style decoder (the Viterbi
+algorithm, covered with sequence labeling in Jurafsky and Martin) chooses the most probable language
+sequence given per-word evidence and a cost for changing language between neighbours.
 
 ---
 
@@ -117,6 +125,7 @@ text
  → Unicode script detection
  → dictionary lookup (romanized words)
  → character n-gram Naive Bayes (for ambiguous or unknown words)
+ → context smoothing (Viterbi)
  → language sequence and switch points
  → statistics
 ```
@@ -158,6 +167,16 @@ word lists, mapping each word to the languages it appears under.
 - Listed under several: the classifier chooses among those languages only ("lexicon + n-gram").
 - Not listed: the classifier chooses among all active languages ("n-gram").
 
+Two corrections were added in the improvement phase (Section 6.5):
+
+- **Function-word lists.** Short hand-written lists of Hindi and Telugu closed-class words
+  (pronouns, postpositions, question words, auxiliaries, conjunctions, common adverbs; 208 entries
+  in total) replace the dictionary entry for those words. This was needed because the English
+  frequency list contains many romanized Hindi and Telugu function words, so the dictionary listed
+  them as English.
+- **Frequent English words.** The 300 most frequent English words are fixed as English, unless a
+  function-word list says otherwise, so that "the", "at" or "but" cannot be pulled toward Hindi.
+
 ### 4.4 Character n-gram Naive Bayes
 
 Features are character n-grams of length 1 to 4, computed on the word padded with spaces at both
@@ -169,18 +188,34 @@ where α = 0.1 is the smoothing constant and |V| is the n-gram vocabulary size. 
 uniform, because the language mix of real text is unknown. The n-gram range and α are standard
 choices and were not tuned.
 
+**English-bias offsets.** On held-out words the classifier leaned toward English (English recall
+0.966 against Hindi recall 0.507). A per-language offset is added to the log-scores; the offsets
+were fitted on held-out dictionary words to maximise macro-F1 (English −10.0, Hindi +2.5,
+Telugu −4.0). Applied at full strength they over-corrected on real sentences, so the offsets are
+multiplied by a scale chosen on the development set (final scale 0.25).
+
 ### 4.5 Calibration
 
 The log-scores are divided by a temperature T, passed through a softmax, and renormalised over the
 candidate languages for that token:
 
-p(L | w) = softmax( log P(L | w) / T ), restricted to the candidate languages.
+p(L | w) = softmax( (log P(L | w) + offset_L) / T ), restricted to the candidate languages.
 
 T was chosen from 1.0 to 40.0 in steps of 0.5 to minimise log-loss on held-out romanized words
-(the fitted value for the three-language model is T = 15.5). Probabilities are shown in the
-interface only for tokens the classifier decided.
+(final value T = 12.5). Probabilities are shown in the interface only for tokens the classifier
+decided.
 
-### 4.6 Code-switch analysis
+### 4.6 Context smoothing
+
+Every token gets a probability distribution over the three languages: a script-rule token puts
+almost all mass on its language; a dictionary-only match puts a fixed share (the dictionary
+confidence, 0.9) on its language; a classifier token uses its calibrated probabilities. The Viterbi
+algorithm then selects the language sequence that maximises the sum of log emission scores and log
+transition scores, where staying in the same language has probability 1 − s and switching has
+probability s split between the other languages. The switch prior s is 0.5 in the final system.
+With s = 2/3 (three languages) this is identical to deciding every token independently.
+
+### 4.7 Code-switch analysis
 
 Definitions used throughout the project:
 
@@ -201,10 +236,10 @@ Definitions used throughout the project:
 
 **Worked example.** With the correct labels for the example sentence (te, en, en, te, en, en, en,
 en, en): 4 segments, 3 switches, switch density 3/8 = 0.375, and shares p(en) = 7/9, p(te) = 2/9, so
-Σp² = 53/81 and M = (28/81) ÷ (2 · 53/81) = 28/106 ≈ 0.264. The system actually labels "mam" as
-Telugu, which produces 5 switches, density 0.625 and M = 0.40 for the same sentence. One wrong token
-changes the switch statistics a great deal, which is why switch detection is evaluated separately
-from token accuracy.
+Σp² = 53/81 and M = (28/81) ÷ (2 · 53/81) = 28/106 ≈ 0.264. The first version of the system labeled
+"mam" as Telugu, which produced 5 switches, density 0.625 and M = 0.40 for the same sentence; the
+final system labels it English and produces the 3 switches above. One wrong token changes the switch
+statistics a great deal, which is why switch detection is evaluated separately from token accuracy.
 
 ---
 
@@ -218,31 +253,34 @@ from token accuracy.
 - **English:** the 20,000 most frequent English words from the `wordfreq` package, including
   words with apostrophes.
 - The three-language model trains on 100,000 words (English 20,000; Hindi 40,000; Telugu 40,000).
-  The dictionary holds 53,440 Latin-script words, of which 5,463 are listed under more than one
+  The final dictionary holds 53,479 Latin-script words, of which 5,243 are listed under more than one
   language.
-- Dictionary words were also extracted for ten other languages from the same dataset, used only in
-  the thirteen-language experiment.
+- Words for ten other languages were extracted from the same dataset and used only in the
+  thirteen-language experiment.
 
 The cap of 20,000 words per language and form is a design choice to keep the classes balanced.
 
 ### 5.2 Held-out dictionary words
 
-For model training diagnostics, 10% of words are held out with a **group split**: the Dakshina data
-contains several romanizations of the same native word, so all spellings of one word are kept on the
-same side of the split. This prevents a spelling in training from leaking its sibling spelling into
-the held-out set.
+For model diagnostics, 10% of words are held out with a **group split**: the Dakshina data contains
+several romanizations of the same native word, so all spellings of one word are kept on the same
+side of the split. This prevents a spelling in training from leaking its sibling spelling into the
+held-out set. These words are also used to fit the bias offsets and the temperature, so scores on
+them are not an independent test.
 
 ### 5.3 Evaluation sentences
 
-Two sets of hand-labeled sentences, written to resemble casual mixed-language messages:
+Three sets of hand-labeled sentences, written to resemble casual mixed-language messages:
 
-| Set | Sentences | Code-switched | Single-language | Tokens (en / hi / te) | Gold switch points |
+| Set | Sentences | Code-switched | Tokens (en / hi / te) | Gold switch points | Role |
 |---|---|---|---|---|---|
-| Development | 33 | 29 | 4 | 169 (67 / 50 / 52) | 77 |
-| Test | 70 | 62 | 8 | 316 (112 / 107 / 97) | 147 |
+| Development | 35 | 31 | 182 (70 / 60 / 52) | 83 | all design decisions |
+| Test set 1 | 70 | 62 | 316 (112 / 107 / 97) | 147 | run once on the first version; later used for error analysis |
+| Test set 2 | 50 | 45 | 280 (82 / 120 / 78) | 125 | run once on the final, frozen version |
 
 Each sentence has one label per word: `en`, `hi`, `te`, or `other` (names, numbers and words from other
-languages; not scored).
+languages; not scored). The development set includes two sentences that failed when the interface
+was tested by hand.
 
 **Labeling rules.** A word is labeled by the language it belongs to in the sentence. English loanwords
 inside Telugu or Hindi sentences ("assignment", "college", "mam") are English. Words valid in two
@@ -255,18 +293,20 @@ script.
 actually happened: "The sentences were drafted with the help of an AI assistant and labeled word by
 word. All labels were then reviewed by the author, and the Telugu labels were checked by ____."]
 
-The development set was used for all decisions, including testing a context-smoothing step
-(Section 6.5). The model and its parameters were then frozen and committed to version control, and
-the test set was evaluated **once**. The test numbers below are those of that single run. All
-evaluation data has a single annotator, which is a limitation (Section 9).
+The protocol had two phases. In the first phase, the model was built using the development set and
+test set 1 was run once. In the second phase, interface testing showed that Hindi words were often
+labeled English. The model was improved using the development set only, frozen, and evaluated once
+on test set 2, which did not exist during the improvements. Test set 1 was run again afterwards only
+to show the change on the same sentences, and is labeled as no longer held out. All evaluation data
+has a single annotator, which is a limitation (Section 9).
 
 ---
 
 ## 6. Experiments and results
 
-### 6.1 Held-out dictionary words (three languages)
+### 6.1 Held-out dictionary words (first version, three languages)
 
-On 6,021 held-out Latin-script words, the n-gram classifier alone reaches accuracy 0.751.
+On 6,021 held-out Latin-script words, the n-gram classifier alone reached accuracy 0.751.
 
 | Language | Precision | Recall | F1 | Support |
 |---|---|---|---|---|
@@ -274,21 +314,15 @@ On 6,021 held-out Latin-script words, the n-gram classifier alone reaches accura
 | Hindi | 0.858 | 0.507 | 0.638 | 2,066 |
 | Telugu | 0.857 | 0.789 | 0.822 | 1,971 |
 
-Confusion matrix (rows = true, columns = predicted):
-
-| | en | hi | te |
-|---|---|---|---|
-| en | 1,917 | 51 | 16 |
-| hi | 775 | 1,048 | 243 |
-| te | 294 | 122 | 1,555 |
-
-Many romanized Hindi words are labeled English: single words carry little evidence, and short
-romanized Hindi spellings resemble English letter patterns.
+775 of the 2,066 Hindi words were labeled English: single words carry little evidence, and short
+romanized Hindi spellings resemble English letter patterns. After the bias offsets (full strength,
+fitted on these same words) accuracy is 0.776 and macro-F1 rises from 0.744 to 0.779.
 
 ### 6.2 Three languages versus thirteen
 
-The same method trained on all thirteen languages gives accuracy 0.502 on 25,866 held-out Latin-script
-words (an earlier run with a random instead of group split gave 0.504, so the leak was small).
+The same method trained on all thirteen languages (run before the bias offsets were added) gives
+accuracy 0.502 on 25,866 held-out Latin-script words (an earlier run with a random instead of group
+split gave 0.504, so the leak was small).
 
 | Setting | Latin-script accuracy | Hindi recall | English precision |
 |---|---|---|---|
@@ -303,119 +337,132 @@ Because only English, Hindi and Telugu can be evaluated reliably, the system sup
 
 | Temperature | Log-loss | Mean top probability |
 |---|---|---|
-| T = 1.0 (uncalibrated) | 4.561 | 0.980 |
-| T = 15.5 (fitted) | 0.648 | 0.727 |
+| T = 1.0 (uncalibrated) | 3.389 | 0.978 |
+| T = 12.5 (fitted) | 0.590 | 0.747 |
 
-Actual accuracy on the same words is 0.751. After scaling, the mean top probability (0.727) is close
-to the accuracy, whereas before scaling the model claimed 0.980.
+Accuracy on the same words is 0.776, so after scaling the mean top probability is close to the
+accuracy, whereas before scaling the model claimed 0.978. (The first version gave log-loss 4.561 →
+0.648 at T = 15.5.)
 
-### 6.4 Development set
+### 6.4 First version on test set 1
 
-Token accuracy 0.858 (95% bootstrap interval 0.806–0.904), macro-F1 0.852, switch precision 0.695,
-recall 0.740, F1 0.717. Without the dictionary (n-gram only), accuracy is 0.805 and switch F1 is
-0.659. 24 of the 169 tokens were wrong.
+Run once, before any improvement: token accuracy **0.877** (95% interval 0.840–0.911), macro-F1
+0.875, switch F1 0.768. Hindi recall was 0.832, with 15 of the 18 Hindi errors labeled English.
+Without the dictionary, accuracy was 0.839. 39 of 316 tokens were wrong.
 
-### 6.5 Context-smoothing experiment
+### 6.5 Improvement phase
 
-Each word is currently classified alone. To test whether neighbours help, a Viterbi decoding step
-was added: every token gets a probability distribution over the three languages, and the best
-language sequence is chosen with a penalty for changing language between neighbours. Two settings
-(the switch probability and the dictionary confidence) were tuned on the development set by grid
-search (7 × 4 combinations).
+User testing of the interface showed Hindi words labeled English in most sentences (for example
+"main", "ke", "bohot", "lag", "ho"). The error analysis (Section 7.1) showed the causes: short Hindi
+function words listed as English in the frequency list, a general lean of the classifier toward
+English, and words that exist in both languages. Three changes were made, all tuned on the
+development set only:
 
-The best setting changed macro-F1 from 0.852 to 0.859 and left accuracy unchanged at 0.858, while
-switch F1 went from 0.717 to 0.715; stronger smoothing lowered scores (for example accuracy 0.751 at
-a switch probability of 0.2). One reason is that the development sentences switch language between
-about 57% of neighbouring words (77 switches across 136 word pairs), so a prior that favours staying
-in the same language fits the data poorly. The step was therefore left **disabled**, and the model
-was frozen without it.
+1. Function-word lists and fixed frequent English words (Section 4.3).
+2. English-bias offsets, with a scale chosen from {1, 0.75, 0.5, 0.25, 0}: scale 0.25 gave the best
+   development macro-F1 (0.944, against 0.939 at full strength and 0.938 with no offsets).
+3. Context smoothing, tuned over switch prior {0.6, 0.5, 0.4, 0.3} and dictionary confidence
+   {0.8, 0.9, 0.95}, adopted only if it gained at least 0.01 macro-F1 on the development set.
+   The best setting (0.5, 0.9) raised development macro-F1 from 0.944 to 0.968, so it was adopted.
+   Performance was sensitive to the setting: at a switch prior of 0.4 development macro-F1 was 0.919.
 
-### 6.6 Test set (single run)
+Development set after the changes: accuracy 0.967 (95% interval 0.940–0.989), switch F1 0.951. These
+numbers were used for tuning and are optimistic.
 
-Token accuracy **0.877** (95% bootstrap interval 0.840–0.911), macro-F1 0.875.
+### 6.6 Final system on test set 2 (single run)
+
+Token accuracy **0.943** (95% bootstrap interval 0.913–0.969), macro-F1 0.944.
 
 | Language | Precision | Recall | F1 | Support |
 |---|---|---|---|---|
-| English | 0.816 | 0.991 | 0.895 | 112 |
-| Hindi | 0.899 | 0.832 | 0.864 | 107 |
-| Telugu | 0.951 | 0.794 | 0.865 | 97 |
+| English | 0.918 | 0.951 | 0.934 | 82 |
+| Hindi | 0.949 | 0.925 | 0.937 | 120 |
+| Telugu | 0.962 | 0.962 | 0.962 | 78 |
 
 Confusion matrix (rows = gold, columns = predicted):
 
 | | en | hi | te |
 |---|---|---|---|
-| en | 111 | 0 | 1 |
-| hi | 15 | 89 | 3 |
-| te | 10 | 10 | 77 |
+| en | 78 | 4 | 0 |
+| hi | 6 | 111 | 3 |
+| te | 1 | 2 | 75 |
 
 Accuracy by decision method:
 
 | Decision method | Tokens | Accuracy |
 |---|---|---|
-| Script rule | 19 | 1.000 |
-| Dictionary only | 119 | 0.916 |
-| Dictionary + n-gram | 143 | 0.825 |
-| n-gram only | 35 | 0.886 |
+| Script rule | 12 | 1.000 |
+| Dictionary only | 183 | 0.978 |
+| Dictionary + n-gram | 67 | 0.866 |
+| n-gram only | 18 | 0.833 |
 
 ### 6.7 Switch detection
 
 A predicted switch counts as correct only if both its position and its language pair match a gold
 switch.
 
-| Measure | Value |
-|---|---|
-| Gold / predicted / matched switches | 147 / 142 / 111 |
-| Precision / recall / F1 | 0.782 / 0.755 / 0.768 |
-| Sentences with exactly the right switch count | 0.657 |
-| Sentences with exactly the right language sequence | 0.600 |
-| Mean absolute error in switch count per sentence | 0.443 |
+| Measure | Test set 2 | Test set 1 (first version) |
+|---|---|---|
+| Gold / predicted / matched switches | 125 / 114 / 108 | 147 / 142 / 111 |
+| Precision / recall / F1 | 0.947 / 0.864 / 0.904 | 0.782 / 0.755 / 0.768 |
+| Sentences with exactly the right switch count | 0.760 | 0.657 |
+| Sentences with exactly the right language sequence | 0.740 | 0.600 |
+| Mean absolute error in switch count per sentence | 0.340 | 0.443 |
 
 ### 6.8 Ablation
 
-| Configuration | Token accuracy | Macro-F1 | Switch F1 |
-|---|---|---|---|
-| Dictionary + n-gram (final system) | 0.877 | 0.875 | 0.768 |
-| n-gram model only | 0.839 | 0.837 | 0.726 |
+| Configuration | Test set 2: accuracy / switch F1 | Test set 1 (no longer held out): accuracy / switch F1 |
+|---|---|---|
+| Final system (dictionary + n-gram + smoothing) | 0.943 / 0.904 | 0.943 / 0.877 |
+| Without context smoothing | 0.954 / 0.906 | 0.949 / 0.875 |
+| n-gram model only | 0.800 / 0.652 | 0.842 / 0.729 |
 
-The dictionary raises accuracy by about four points and switch F1 by about four points. (On the test
-set, the context step is disabled, so the "with context" row is identical to the final system.)
+The dictionary and function-word lists give the largest gain (about 14 accuracy points on test set 2).
+Context smoothing improved the development set but did not improve either test set: accuracy was
+slightly lower with it and switch F1 about equal (smoothing raises switch precision and lowers switch
+recall). Its benefit is therefore not established, and the model was kept as frozen rather than
+changed after seeing test results.
+
+### 6.9 Before and after on the same sentences
+
+On the 70 sentences of test set 1, token accuracy went from 0.877 (first version, held out) to 0.943
+(final version, no longer held out), and switch F1 from 0.768 to 0.877. This shows the direction of
+the improvement, but not an unbiased size, because those sentences guided the changes. The unbiased
+figure for the final system is test set 2.
 
 ---
 
 ## 7. Error analysis
 
-The final system made 39 errors on 316 scored tokens. Grouping them by how they were decided
-(counted from the saved error list):
+### 7.1 First version (test set 1, 39 errors)
 
 | Cause | Errors | Description |
 |---|---|---|
-| Word listed under several languages | 25 | The classifier had to choose between languages without context. |
+| Word listed under several languages | 25 | The classifier had to choose without context. |
 | Dictionary listed the word under only one (wrong) language | 10 | The single-language dictionary match was wrong. |
 | Word not in the dictionary | 4 | The n-gram model alone decided and was wrong. |
 
-Direction of errors: Telugu words labeled English (10) or Hindi (10); Hindi words labeled English (15)
-or Telugu (3); one English word labeled Telugu.
+Hindi and Telugu function words such as `ki`, `lo`, `ne`, `ho`, `Yeh`, `Wo`, `Hum` were labeled English
+or the wrong Indian language. A check confirmed that ten such words (`ki`, `lo`, `tho`, `ga`, `yeh`,
+`wo`, `ke`, `ho`, `aa`, `main`) were in the English word list. This analysis motivated Section 6.5.
 
-**Cross-language homographs (25).** Short function words are spelled the same in several languages.
-The Telugu dative suffix `ki` was labeled Hindi six times, because Hindi also has `ki`; `lo` (Telugu
-"in") was labeled English three times; `ne`, `ho`, `do`, `Mera` and `Main` show the same pattern for
-Hindi. A check of the English word list confirmed that ten such words (`ki`, `lo`, `tho`, `ga`,
-`yeh`, `wo`, `ke`, `ho`, `aa`, `main`) appear in it.
+### 7.2 Final version (test set 2, 16 errors of 280)
 
-**Misleading dictionary matches (10).** Some Hindi and Telugu words are in the English frequency list
-as ordinary tokens, so they are listed only under English: Hindi `Yeh`, `Wo` (twice), `Hum`; Telugu
-`Ee` (twice), `Aa`, `ga` (twice). The Telugu word `akali` ("hunger") was listed only under Hindi.
+| Cause | Errors | Examples |
+|---|---|---|
+| Word listed under several languages (decided with the n-gram model) | 9 | English `gym`, `wifi`, `late`, `Thanks` labeled Hindi; Hindi `Maine`, `ne`, `main` labeled English; `Bhai` labeled Telugu; Telugu `ki` labeled Hindi |
+| Dictionary or function-word list gave the wrong single language | 4 | Hindi `do` and `Is` labeled English (frequent English words); Hindi `lo` (as in "kar lo") labeled Telugu, and `baar` labeled Telugu |
+| Word not in the dictionary | 3 | Hindi `chalogi`, Telugu `chestanu` and `vachav` |
 
-**Unlisted words (4).** The n-gram model alone mislabeled Telugu `chey` and Hindi `phans`, `yaad` and
-`Arre`.
+Remaining errors are mostly short words that exist in several languages: `do`, `is`, `main` and `lo`
+are common words in both English and Hindi or Telugu, and no word-level rule resolves them. Some are
+side effects of the new rules (fixing very frequent English words as English costs Hindi `do` and
+`Is`; the Telugu function word `lo` costs Hindi "lo"). English words labeled Hindi (`gym`, `wifi`,
+`late`, `Thanks`) show that the Hindi side still pulls some English words that are rare in the English
+list.
 
 **Effect on switches.** A wrong label inside a run creates two extra switches or removes one, so
-switch F1 (0.768) is lower than token accuracy (0.877).
-
-**Possible remedies, not applied.** Curated function-word lists per language and a training corpus
-of real code-switched text would address most of these errors. They were not added because the same
-particles occur in the test set that had already been examined; adding them would make the test
-result optimistic.
+switch recall (0.864) is lower than token accuracy (0.943).
 
 ---
 
@@ -423,8 +470,8 @@ result optimistic.
 
 ### 8.1 Backend
 
-Python with scikit-learn and FastAPI. The model, dictionary and calibration temperature are saved
-together and loaded once at server start. Endpoints:
+Python with scikit-learn and FastAPI. The model, dictionary, offsets and calibration temperature are
+saved together and loaded once at server start. Endpoints:
 
 - `GET /api/health` – status and active languages.
 - `POST /api/analyze` – tokens with language, decision method and probability (when available), plus
@@ -432,7 +479,7 @@ together and loaded once at server start. Endpoints:
 - `POST /api/compare` – the same analysis for two texts.
 
 Unit tests check the analysis formulas against hand-computed values (the worked example in
-Section 4.6, neutral tokens, ties, empty and single-token input, ordering of uncertain tokens).
+Section 4.7, neutral tokens, ties, empty and single-token input, ordering of uncertain tokens).
 
 ### 8.2 Frontend
 
@@ -460,18 +507,25 @@ classifier decided.
 
 ## 9. Limitations and threats to validity
 
-- **No context:** each word is classified independently. Shared words are the main error source.
-- **Small, hand-made evaluation set:** 70 test sentences, written to resemble casual messages and
-  switching frequently, rather than sampled from natural text. Results may not transfer to real
-  social-media data. The bootstrap interval reflects sentence sampling only.
+- **Shared words:** short words valid in several languages are still the main error source, and
+  context smoothing only partly helps.
+- **Optimistic evaluation:** the development scores were used for tuning. Test set 2 shares
+  vocabulary with the hand-written function-word lists because both came from the same author's
+  knowledge, so 0.943 is probably higher than the accuracy on natural text.
+- **Small, hand-made evaluation sets:** 50 to 70 sentences each, written to resemble casual messages
+  and switching frequently, rather than sampled from natural text. The bootstrap interval reflects
+  sentence sampling only.
 - **Single annotator:** labels were not checked by a second independent annotator, so there is no
   agreement score.
+- **Hand-written word lists:** the Hindi list was written for review by a Hindi speaker; the Telugu
+  list has not been reviewed by a native speaker.
+- **Smoothing is fragile:** its setting was tuned on 35 sentences, performance varied noticeably
+  between neighbouring settings, and it did not improve the test sets.
 - **Training data mismatch:** the classifier is trained on dictionary-style word lists but applied
   to casual spellings.
 - **Limited languages:** only English, Hindi and Telugu are supported and evaluated. Romanized
   Urdu is indistinguishable from Hindi in this system.
-- **Word-list noise:** the English frequency list contains some foreign words and names, and the
-  Dakshina lists do not contain particles written as separate words.
+- **Word-list noise:** the English frequency list contains some foreign words and names.
 - **Choices not tuned:** the n-gram range, smoothing constant and the 20,000-word cap are standard or
   practical choices, not tuned values.
 
@@ -481,14 +535,14 @@ classifier decided.
 
 LexiSwitch identifies languages token by token in English–Hindi–Telugu text, derives switch points
 and mixing statistics, and presents them through an interface that shows only computed results.
-On a test set evaluated once, it reaches 0.877 token accuracy and 0.768 switch F1. The experiments
-show that the dictionary helps, that calibration makes the probabilities usable, that adding similar
-languages hurts word-level romanized identification, and that simple context smoothing did not help
-on this data.
+The final system reaches 0.943 token accuracy and 0.904 switch F1 on a test set evaluated once.
+The experiments show that the dictionary and function-word lists matter most, that calibration makes
+the probabilities usable, that adding similar languages hurts word-level romanized identification,
+and that testing the interface by hand exposed a weakness the first evaluation understated.
 
-Future work: train a sequence model (HMM or CRF) on real code-switched corpora, add curated
-function-word lists, build a larger multi-annotator test set from natural text, support more
-languages with labeled evaluation data, and handle names and numbers explicitly.
+Future work: train a sequence model (HMM or CRF) on real code-switched corpora, replace the
+hand-written word lists with data-driven ones, build a larger multi-annotator test set from natural
+text, support more languages with labeled evaluation data, and handle names and numbers explicitly.
 
 ---
 
@@ -515,11 +569,13 @@ languages with labeled evaluation data, and handle names and numbers explicitly.
 ```
 python scripts\prepare_data.py
 python scripts\train_model.py
+python scripts\tune.py
 python scripts\evaluate.py data\eval\dev.txt
-python scripts\evaluate.py data\eval\test.txt
+python scripts\evaluate.py data\eval\test2.txt
 python scripts\train_model.py --langs en,bn,gu,hi,kn,ml,mr,pa,sd,si,ta,te,ur
 ```
 
 Fixed settings: character n-grams 1–4 (`char_wb`), add-0.1 smoothing, uniform priors, 20,000 words per
 language and form, group split with random seed 42, 10% held out, bootstrap with 1,000 resamples
-(seed 42). Raw outputs of these runs are in the `docs/` folder.
+(seed 42). Tuned settings (`backend/app/tuned_params.json`): bias scale 0.25, switch prior 0.5,
+dictionary confidence 0.9. Raw outputs of these runs are in the `docs/` folder.
