@@ -1,0 +1,17 @@
+sentence_id,position,token,gold,predicted,method,probability,runner_up,sentence
+1,4,gym,en,hi,lexicon+char-ngram-nb,0.5366,hi,Mujhe kal subah gym jaana hai
+7,6,chalogi,hi,en,char-ngram-nb,0.4555,en,Kya tum mere saath cafe chalogi
+8,1,Maine,hi,en,lexicon+char-ngram-nb,0.7645,hi,Maine password reset kar diya
+10,3,wifi,en,hi,lexicon+char-ngram-nb,0.7540,hi,Please mujhe wifi ka password bata do
+10,7,do,hi,en,lexicon,,,Please mujhe wifi ka password bata do
+12,2,ne,hi,en,lexicon+char-ngram-nb,0.4182,hi,Teacher ne homework kal tak submit karne ko kaha
+14,1,Is,hi,en,lexicon,,,Is baar ka exam bahut tough tha
+14,2,baar,hi,te,lexicon,,,Is baar ka exam bahut tough tha
+16,7,lo,hi,te,lexicon,,,Dukaan band hai online order kar lo
+18,2,main,hi,en,lexicon+char-ngram-nb,0.4693,te,Sorry main late ho gaya
+28,4,chestanu,te,en,char-ngram-nb,0.5361,en,Class ayyaka call chestanu
+33,2,ki,te,hi,lexicon+char-ngram-nb,0.5839,te,Presentation ki slides ready chesava
+39,1,Bhai,hi,te,lexicon+char-ngram-nb,0.6390,te,Bhai nenu kal office ki raanu
+41,4,late,en,hi,lexicon+char-ngram-nb,0.6404,hi,Arre nuvvu kyun late vachav
+41,5,vachav,te,hi,char-ngram-nb,0.5106,te,Arre nuvvu kyun late vachav
+43,1,Thanks,en,hi,lexicon+char-ngram-nb,0.5629,hi,Thanks bhai naaku chala help ayindi
